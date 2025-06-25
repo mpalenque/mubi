@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tubo-Pantalla 3D con Planos de Fondo</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #111;
+            color: #fff;
+            overflow: hidden; /* Evita las barras de scroll */
+        }
+        canvas {
+            display: block;
+        }
+        #info {
+            position: absolute;
+            top: 10px;
+            width: 100%;
+            text-align: center;
+            z-index: 100;
+            padding: 10px;
+            box-sizing: border-box;
+            background-color: rgba(0,0,0,0.5);
+        }
+        #info h1 {
+            margin: 0;
+            font-size: 1.5em;
+            font-weight: 500;
+        }
+        #info p {
+            margin: 5px 0 0 0;
+            font-size: 0.9em;
+        }
+        
+        /* Video preview en esquina superior izquierda */
+        #video-preview {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 320px;
+            height: 180px;
+            border: 2px solid #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            z-index: 1000;
+            background: #000;
+            box-shadow: 0 4px 20px rgba(255, 255, 255, 0.3);
+        }
+        
+        #video-preview video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        /* Lista de videos debajo del preview */
+        #video-list {
+            position: fixed;
+            top: 210px; /* Debajo del video preview */
+            left: 20px;
+            width: 320px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #ffffff;
+            border-radius: 8px;
+            padding: 10px;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+        
+        #video-list .video-item {
+            padding: 8px 12px;
+            margin: 4px 0;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        #video-list .video-item.selected {
+            background: #0066ff;
+            color: #ffffff;
+        }
+        
+        #video-list .video-item:not(.selected) {
+            background: transparent;
+            color: #ffffff;
+        }
+        
+        #video-list .video-item:hover:not(.selected) {
+            background: rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <!-- Video preview en esquina superior izquierda -->
+    <div id="video-preview">
+        <video id="preview-video" muted autoplay playsinline></video>
+    </div>
+
+    <!-- Información removida para pantalla limpia -->
+
+    <!-- Lista de videos debajo del preview -->
+    <div id="video-list">
+        <div class="video-item selected" data-video="vid1.mp4">vid1.mp4</div>
+        <div class="video-item" data-video="vid2.mp4">vid2.mp4</div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    
+    <!-- Import map para gestionar las dependencias de Three.js -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.161.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module">
+        // Importamos los módulos necesarios de Three.js
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+        // --- VARIABLES GLOBALES ---
+        let scene, camera, renderer, controls, tubeMesh;
+        const clock = new THREE.Clock();
+        
+        // Variables para el control de videos
+        let isAutoMode = true;
+        let videoSources = ['./vid1.mp4', './vid2.mp4'];
+        let currentVideoIndex = 0;
+        let currentVideo = null;
+        let texture = null;
+
+        // --- PARÁMETROS DE LA ESTRUCTURA ---
+        const TUBE_DIAMETER = 3; 
+        const STRIP_HEIGHT = 8; // Cambio de 9m a 8m de altura
+        const PIXEL_SEPARATION_Y = STRIP_HEIGHT / 480; // 480 píxeles verticales
+        const PIXEL_SIZE = 0.005;
+        const TUBE_RADIUS = TUBE_DIAMETER / 2;
+        const NUM_STRIPS = 268; // 268 píxeles horizontales (strips alrededor del cilindro)
+
+        // --- SHADERS ---
+        const vertexShader = `
+            #define PI 3.141592653589793
+            uniform float uStripHeight;
+            uniform float uAspectRatio;
+            varying vec2 vUv;
+
+            void main() {
+                // Posición del centro de la instancia (del pixel) en el espacio del modelo
+                vec4 modelPosition = instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);
+
+                // Calculamos las coordenadas UV para el mapeo
+                // U (horizontal) se basa en el ángulo alrededor del eje Y
+                float angle = atan(modelPosition.z, modelPosition.x);
+                float u = (angle + PI) / (2.0 * PI);
+
+                // V (vertical) se basa en la altura Y, ajustado por aspect ratio
+                float v = (modelPosition.y / uStripHeight);
+                
+                // Ajustar UV para mantener aspecto correcto del video
+                vUv = vec2(u, v);
+                
+                // Posición final del vértice en la pantalla
+                gl_Position = projectionMatrix * viewMatrix * instanceMatrix * vec4(position, 1.0);
+            }
+        `;
+
+        const fragmentShader = `
+            uniform sampler2D uTexture;
+            uniform float uTime;
+            uniform float uAspectRatio;
+            uniform vec2 uVideoResolution;
+            varying vec2 vUv;
+
+            void main() {
+                // Coordenadas UV base
+                vec2 uv = vUv;
+                
+                // ROTAR CONTENIDO 90 GRADOS
+                // Intercambiar coordenadas UV y ajustar para rotación
+                vec2 rotatedUv = vec2(1.0 - uv.y, uv.x);
+                
+                // Ajustar para el aspect ratio del video DESPUÉS de la rotación
+                vec2 adjustedUv = rotatedUv;
+                
+                // CORRECCIÓN ESPECÍFICA: Comprimir horizontalmente para círculos redondos
+                // Aumentar aún más la compresión para compensar el estiramiento del cilindro
+                adjustedUv.x = (adjustedUv.x - 0.5) * 0.25 + 0.5; // Comprimir 75% horizontalmente
+                
+                // Calcular el aspect ratio del cilindro desarrollado
+                float cylinderCircumference = 9.42477796; // 2π * 1.5 (radio del cilindro)
+                float cylinderHeight = 8.0; // STRIP_HEIGHT
+                float cylinderAspectRatio = cylinderCircumference / cylinderHeight; // ~1.18
+                
+                // Como rotamos 90°, intercambiamos width y height del video
+                float rotatedVideoAspectRatio = uVideoResolution.y / uVideoResolution.x;
+                
+                // Ajustar las coordenadas UV para corregir la deformación
+                if (rotatedVideoAspectRatio > cylinderAspectRatio) {
+                    // Video rotado más ancho que el cilindro desarrollado
+                    float scaleX = cylinderAspectRatio / rotatedVideoAspectRatio;
+                    adjustedUv.x = (adjustedUv.x - 0.5) * scaleX + 0.5;
+                } else {
+                    // Video rotado más alto que el cilindro desarrollado
+                    float scaleY = rotatedVideoAspectRatio / cylinderAspectRatio;
+                    adjustedUv.y = (adjustedUv.y - 0.5) * scaleY + 0.5;
+                }
+                
+                // ELIMINAR SCROLL VERTICAL - comentar esta línea
+                // adjustedUv.y = adjustedUv.y - uTime * 0.05;
+                
+                // Asegurar que las coordenadas estén en rango válido
+                adjustedUv = clamp(adjustedUv, 0.0, 1.0);
+                
+                // Tomar el color de la textura
+                vec4 textureColor = texture2D(uTexture, adjustedUv);
+                
+                // Mejorar el contraste y brillo para efecto LED
+                textureColor.rgb = pow(textureColor.rgb, vec3(0.8));
+                textureColor.rgb *= 1.2;
+                
+                gl_FragColor = textureColor;
+            }
+        `;
+
+        // --- FUNCIÓN PRINCIPAL DE INICIALIZACIÓN ---
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000000);
+            scene.fog = new THREE.Fog(scene.background, 15, 50);
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(2.5, 4, 5); 
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            document.body.appendChild(renderer.domElement);
+
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.minDistance = 2;
+            controls.maxDistance = 30;
+            controls.target.set(0, STRIP_HEIGHT / 2, 0);
+
+            setupLighting();
+            
+            const googleTexture = createGoogleTexture();
+            
+            createBackingPlanes();
+            createPixelScreen(googleTexture);
+            createPerson(); // Se vuelve a añadir la persona
+            createFloor();
+
+            window.addEventListener('resize', onWindowResize);
+            animate();
+        }
+        
+        // --- CREACIÓN DE TEXTURA DESDE VIDEOS SECUENCIALES ---
+        function createGoogleTexture() {
+            // Array de videos para secuenciar
+            const videoSources = ['./vid1.mp4', './vid2.mp4'];
+            let currentVideoIndex = 0;
+            let currentVideo = null;
+            let texture = null;
+            
+            // Crear textura temporal mientras carga el primer video
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = 512;
+            canvas.height = 512;
+            
+            // Dibujar un placeholder
+            context.fillStyle = '#000033';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            context.fillStyle = '#ffffff';
+            context.font = '32px Arial';
+            context.textAlign = 'center';
+            context.fillText('Cargando Videos...', canvas.width/2, canvas.height/2);
+            
+            const tempTexture = new THREE.CanvasTexture(canvas);
+            tempTexture.wrapS = THREE.ClampToEdgeWrapping;
+            tempTexture.wrapT = THREE.ClampToEdgeWrapping;
+            tempTexture.flipY = false;
+            
+            function loadVideo(videoSrc) {
+                console.log('Cargando video:', videoSrc);
+                
+                // Crear elemento de video
+                const video = document.createElement('video');
+                video.src = videoSrc;
+                video.crossOrigin = 'anonymous';
+                video.loop = false; // No loop individual, manejamos la secuencia manualmente
+                video.muted = true;
+                video.autoplay = false;
+                video.playsInline = true;
+                video.preload = 'metadata';
+                
+                video.style.display = 'none';
+                document.body.appendChild(video);
+                
+                // Obtener el elemento de video preview
+                const previewVideo = document.getElementById('preview-video');
+                
+                // Manejar eventos del video
+                video.addEventListener('loadedmetadata', function() {
+                    console.log('Metadata cargada para:', videoSrc);
+                    console.log('Dimensiones:', video.videoWidth, 'x', video.videoHeight);
+                    console.log('Duración:', video.duration, 'segundos');
+                    
+                    // Sincronizar el video preview con el mismo video
+                    if (previewVideo) {
+                        previewVideo.src = videoSrc;
+                        previewVideo.load();
+                    }
+                    
+                    // Crear o actualizar la textura
+                    if (!texture) {
+                        texture = new THREE.VideoTexture(video);
+                        texture.wrapS = THREE.ClampToEdgeWrapping;
+                        texture.wrapT = THREE.ClampToEdgeWrapping;
+                        texture.flipY = false;
+                        texture.format = THREE.RGBAFormat;
+                        texture.generateMipmaps = false;
+                        texture.minFilter = THREE.LinearFilter;
+                        texture.magFilter = THREE.LinearFilter;
+                        texture.encoding = THREE.sRGBEncoding;
+                        
+                        // Actualizar el material del tubo
+                        if (tubeMesh && tubeMesh.material.uniforms.uTexture) {
+                            tubeMesh.material.uniforms.uTexture.value = texture;
+                            tubeMesh.material.uniforms.uVideoResolution.value.set(video.videoWidth, video.videoHeight);
+                            tubeMesh.material.uniforms.uAspectRatio.value = video.videoWidth / video.videoHeight;
+                            tubeMesh.material.needsUpdate = true;
+                        }
+                    } else {
+                        // Actualizar textura existente con nuevo video
+                        texture.image = video;
+                        texture.needsUpdate = true;
+                        
+                        if (tubeMesh && tubeMesh.material.uniforms.uTexture) {
+                            tubeMesh.material.uniforms.uVideoResolution.value.set(video.videoWidth, video.videoHeight);
+                            tubeMesh.material.uniforms.uAspectRatio.value = video.videoWidth / video.videoHeight;
+                        }
+                    }
+                    
+                    currentVideo = video;
+                });
+                
+                video.addEventListener('canplay', function() {
+                    console.log('Video listo para reproducir:', videoSrc);
+                    video.play().then(() => {
+                        console.log('Video iniciado:', videoSrc);
+                        
+                        // Sincronizar reproducción del preview
+                        if (previewVideo && previewVideo.src === videoSrc) {
+                            previewVideo.play().catch(e => console.log('Error reproduciendo preview:', e));
+                        }
+                        
+                        if (texture) {
+                            texture.needsUpdate = true;
+                        }
+                    }).catch(error => {
+                        console.log('Error al reproducir video:', error);
+                        switchToNextVideo();
+                    });
+                });
+                
+                // Cuando el video termina, cambiar al siguiente
+                video.addEventListener('ended', function() {
+                    console.log('Video terminado:', videoSrc);
+                    
+                    // Pausar el preview también
+                    if (previewVideo) {
+                        previewVideo.pause();
+                    }
+                    
+                    switchToNextVideo();
+                });
+                
+                video.addEventListener('error', function(e) {
+                    console.log('Error cargando video:', videoSrc, e);
+                    switchToNextVideo();
+                });
+                
+                video.addEventListener('timeupdate', function() {
+                    if (texture) {
+                        texture.needsUpdate = true;
+                    }
+                });
+                
+                // Forzar carga del video
+                video.load();
+                
+                return video;
+            }
+            
+            function switchToNextVideo() {
+                // Limpiar video anterior
+                if (currentVideo) {
+                    currentVideo.pause();
+                    currentVideo.remove();
+                }
+                
+                // Cambiar al siguiente video en la secuencia
+                currentVideoIndex = (currentVideoIndex + 1) % videoSources.length;
+                console.log('Cambiando a video índice:', currentVideoIndex, videoSources[currentVideoIndex]);
+                
+                // Cargar el siguiente video
+                loadVideo(videoSources[currentVideoIndex]);
+            }
+            
+            // Iniciar con el primer video
+            loadVideo(videoSources[currentVideoIndex]);
+            
+            return tempTexture; // Retornar textura temporal primero
+        }
+        
+        // --- FUNCIÓN DE TEXTURA DE RESPALDO ---
+        function createFallbackTexture() {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = 1024;
+            canvas.height = 768;
+            
+            let animationTime = 0;
+            
+            function animateContent() {
+                animationTime += 0.05;
+                
+                // Limpiar canvas
+                context.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Fondo gradiente animado
+                const gradient = context.createRadialGradient(
+                    canvas.width/2 + Math.sin(animationTime) * 100, 
+                    canvas.height/2 + Math.cos(animationTime) * 50, 
+                    0, 
+                    canvas.width/2, 
+                    canvas.height/2, 
+                    canvas.width/2
+                );
+                gradient.addColorStop(0, '#001122');
+                gradient.addColorStop(0.3, '#0033FF');
+                gradient.addColorStop(0.7, '#001188');
+                gradient.addColorStop(1, '#000000');
+                context.fillStyle = gradient;
+                context.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Título principal
+                context.fillStyle = '#ffffff';
+                context.font = 'bold 72px Arial';
+                context.textAlign = 'center';
+                context.shadowColor = '#0066FF';
+                context.shadowBlur = 30;
+                context.fillText('VIDEO ERROR', canvas.width/2, canvas.height * 0.4);
+                context.shadowBlur = 0;
+                
+                // Subtítulo
+                context.fillStyle = '#66CCFF';
+                context.font = 'bold 32px Arial';
+                context.fillText('VID.mov no disponible', canvas.width/2, canvas.height * 0.5);
+                
+                // Efectos visuales
+                context.fillStyle = '#0066FF';
+                for (let i = 0; i < 50; i++) {
+                    const x = Math.sin(animationTime * 2 + i) * canvas.width/3 + canvas.width/2;
+                    const y = Math.cos(animationTime * 1.5 + i) * canvas.height/3 + canvas.height/2;
+                    const size = Math.sin(animationTime * 3 + i) * 3 + 3;
+                    context.fillRect(x, y, size, size);
+                }
+            }
+            
+            // Crear nueva textura de canvas
+            const canvasTexture = new THREE.CanvasTexture(canvas);
+            canvasTexture.wrapS = THREE.ClampToEdgeWrapping;
+            canvasTexture.wrapT = THREE.ClampToEdgeWrapping;
+            canvasTexture.flipY = false;
+            
+            // Reemplazar la textura en el material
+            if (tubeMesh && tubeMesh.material.uniforms.uTexture) {
+                tubeMesh.material.uniforms.uTexture.value = canvasTexture;
+                tubeMesh.material.needsUpdate = true;
+            }
+            
+            // Iniciar animación del respaldo
+            setInterval(() => {
+                animateContent();
+                canvasTexture.needsUpdate = true;
+            }, 50);
+            animateContent();
+        }
+        
+        // --- FUNCIÓN PARA DIBUJAR UNA SIMULACIÓN DE MUBIFEST.COM ---
+        function drawMubifestPage(context, width, height) {
+            // Fondo oscuro moderno
+            const gradient = context.createLinearGradient(0, 0, 0, height);
+            gradient.addColorStop(0, '#0a0a0a');
+            gradient.addColorStop(0.5, '#1a1a2e');
+            gradient.addColorStop(1, '#16213e');
+            context.fillStyle = gradient;
+            context.fillRect(0, 0, width, height);
+            
+            // Header/Navbar
+            context.fillStyle = 'rgba(0, 0, 0, 0.8)';
+            context.fillRect(0, 0, width, 80);
+            
+            // Logo Mubifest
+            context.fillStyle = '#00ff88';
+            context.font = 'bold 28px Arial';
+            context.textAlign = 'left';
+            context.fillText('MUBIFEST', 50, 45);
+            
+            // Navegación
+            context.fillStyle = '#ffffff';
+            context.font = '16px Arial';
+            context.textAlign = 'right';
+            context.fillText('Inicio', width - 50, 35);
+            context.fillText('Eventos', width - 110, 35);
+            context.fillText('Artistas', width - 180, 35);
+            context.fillText('Contacto', width - 250, 35);
+            
+            // Título principal
+            context.fillStyle = '#ffffff';
+            context.font = 'bold 48px Arial';
+            context.textAlign = 'center';
+            context.fillText('FESTIVAL DE MÚSICA', width/2, height * 0.25);
+            
+            context.fillStyle = '#00ff88';
+            context.font = 'bold 36px Arial';
+            context.fillText('ELECTRÓNICA', width/2, height * 0.25 + 50);
+            
+            // Subtítulo
+            context.fillStyle = '#cccccc';
+            context.font = '20px Arial';
+            context.fillText('La mejor experiencia musical te espera', width/2, height * 0.25 + 100);
+            
+            // Botón principal
+            const buttonWidth = 200;
+            const buttonHeight = 50;
+            const buttonX = (width - buttonWidth) / 2;
+            const buttonY = height * 0.25 + 150;
+            
+            // Gradiente del botón
+            const buttonGradient = context.createLinearGradient(buttonX, buttonY, buttonX, buttonY + buttonHeight);
+            buttonGradient.addColorStop(0, '#00ff88');
+            buttonGradient.addColorStop(1, '#00cc66');
+            context.fillStyle = buttonGradient;
+            context.fillRect(buttonX, buttonY, buttonWidth, buttonHeight);
+            
+            context.fillStyle = '#000000';
+            context.font = 'bold 18px Arial';
+            context.textAlign = 'center';
+            context.fillText('COMPRAR ENTRADAS', width/2, buttonY + 32);
+            
+            // Sección de artistas destacados
+            context.fillStyle = '#ffffff';
+            context.font = 'bold 24px Arial';
+            context.fillText('ARTISTAS DESTACADOS', width/2, height * 0.6);
+            
+            // Tarjetas de artistas
+            const cardWidth = 150;
+            const cardHeight = 100;
+            const cardSpacing = 180;
+            const startX = (width - (cardSpacing * 3)) / 2;
+            
+            for (let i = 0; i < 3; i++) {
+                const cardX = startX + (i * cardSpacing);
+                const cardY = height * 0.6 + 30;
+                
+                // Fondo de tarjeta
+                context.fillStyle = 'rgba(255, 255, 255, 0.1)';
+                context.fillRect(cardX, cardY, cardWidth, cardHeight);
+                
+                // Nombre del artista (simulado)
+                context.fillStyle = '#00ff88';
+                context.font = 'bold 16px Arial';
+                context.textAlign = 'center';
+                const artistNames = ['DJ STELLAR', 'NEON WAVE', 'CYBER BEAT'];
+                context.fillText(artistNames[i], cardX + cardWidth/2, cardY + cardHeight/2);
+            }
+            
+            // Footer
+            context.fillStyle = 'rgba(0, 0, 0, 0.9)';
+            context.fillRect(0, height - 120, width, 120);
+            
+            // Información del evento
+            context.fillStyle = '#ffffff';
+            context.font = '16px Arial';
+            context.textAlign = 'left';
+            
+            context.fillText('📅 25-27 Junio 2025', 50, height - 80);
+            context.fillText('📍 Madrid, España', 50, height - 50);
+            context.fillText('🎵 3 Días de Música', 50, height - 20);
+            
+            // Redes sociales
+            context.textAlign = 'right';
+            context.fillText('Instagram', width - 50, height - 80);
+            context.fillText('Twitter', width - 50, height - 50);
+            context.fillText('Facebook', width - 50, height - 20);
+            
+            // Efectos visuales - partículas
+            context.fillStyle = '#00ff88';
+            for (let i = 0; i < 20; i++) {
+                const x = Math.random() * width;
+                const y = Math.random() * height;
+                const size = Math.random() * 3 + 1;
+                context.fillRect(x, y, size, size);
+            }
+            
+            // Añadir timestamp para simular contenido dinámico
+            const now = new Date();
+            context.fillStyle = '#666666';
+            context.font = '12px Arial';
+            context.textAlign = 'right';
+            context.fillText(`Live: ${now.toLocaleTimeString()}`, width - 30, height - 5);
+            
+            // URL en la parte inferior
+            context.fillStyle = '#00ff88';
+            context.font = '14px Arial';
+            context.textAlign = 'center';
+            context.fillText('mubifest.com/es', width/2, height - 10);
+        }
+        
+        // --- CREACIÓN DE LOS PLANOS TRASEROS ---
+        function createBackingPlanes() {
+            const planeGroup = new THREE.Group();
+            // Geometría de caja con 1cm (0.01m) de ancho
+            const planeGeometry = new THREE.BoxGeometry(0.01, STRIP_HEIGHT, 0.001); 
+            const planeMaterial = new THREE.MeshBasicMaterial({ color: 0x0A0A0A }); // Un color casi negro
+
+            for (let i = 0; i < NUM_STRIPS; i++) {
+                const planeMesh = new THREE.Mesh(planeGeometry, planeMaterial);
+                const angle = (i / NUM_STRIPS) * Math.PI * 2;
+
+                const radius = TUBE_RADIUS - 0.01;
+                const x = radius * Math.cos(angle);
+                const z = radius * Math.sin(angle);
+                
+                planeMesh.position.set(x, STRIP_HEIGHT / 2, z);
+                
+                // Rotamos para alinear con la curvatura Y LUEGO 90 GRADOS ADICIONALES
+                planeMesh.rotation.y = -angle - (Math.PI / 2); 
+                
+                planeGroup.add(planeMesh);
+            }
+            scene.add(planeGroup);
+        }
+
+        // --- CREACIÓN DE LA FIGURA HUMANA CON GLB ---
+        function createPerson() {
+            const loader = new GLTFLoader();
+            
+            loader.load('./person.glb', 
+                function (gltf) {
+                    console.log('Modelo person.glb cargado exitosamente');
+                    const personModel = gltf.scene;
+                    
+                    // Ajustar escala del modelo si es necesario
+                    // Asumiendo que el modelo necesita ser escalado para aproximadamente 1.75m de altura
+                    personModel.scale.set(1, 1, 1); // Ajustar según el tamaño del modelo
+                    
+                    // Posicionar la persona al lado del tubo para referencia de escala
+                    personModel.position.set(TUBE_RADIUS + 0.7, 0, 0);
+                    
+                    // Rotar si es necesario
+                    personModel.rotation.y = 0;
+                    
+                    scene.add(personModel);
+                    console.log('Modelo añadido a la escena en posición:', personModel.position);
+                },
+                function (progress) {
+                    console.log('Progreso de carga:', (progress.loaded / progress.total * 100) + '%');
+                },
+                function (error) {
+                    console.error('Error cargando person.glb:', error);
+                    console.log('Creando figura de respaldo con cubos...');
+                    createPersonFallback();
+                }
+            );
+        }
+        
+        // --- FUNCIÓN DE RESPALDO PARA LA PERSONA ---
+        function createPersonFallback() {
+            const personMaterial = new THREE.MeshBasicMaterial({ color: 0xcccccc });
+            const personGroup = new THREE.Group();
+
+            // Piernas (altura: 0.9m)
+            const legGeometry = new THREE.BoxGeometry(0.2, 0.9, 0.2);
+            const leftLeg = new THREE.Mesh(legGeometry, personMaterial);
+            leftLeg.position.set(-0.15, 0.45, 0);
+            const rightLeg = new THREE.Mesh(legGeometry, personMaterial);
+            rightLeg.position.set(0.15, 0.45, 0);
+
+            // Torso (altura: 0.6m)
+            const torsoGeometry = new THREE.BoxGeometry(0.5, 0.6, 0.25);
+            const torso = new THREE.Mesh(torsoGeometry, personMaterial);
+            torso.position.y = 0.9 + 0.3;
+
+            // Cabeza (altura: 0.25m)
+            const headGeometry = new THREE.BoxGeometry(0.25, 0.25, 0.25);
+            const head = new THREE.Mesh(headGeometry, personMaterial);
+            head.position.y = 1.5 + 0.125;
+
+            personGroup.add(leftLeg, rightLeg, torso, head);
+            personGroup.position.set(TUBE_RADIUS + 0.7, 0, 0);
+            
+            scene.add(personGroup);
+            console.log('Figura de respaldo creada con cubos');
+        }
+        
+        // --- CONFIGURACIÓN DE LUCES ---
+        function setupLighting() {
+            // Se necesita una luz ambiental para que el suelo con MeshStandardMaterial sea visible.
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+        }
+
+        // --- CREACIÓN DE LA PANTALLA DE PÍXELES ---
+        function createPixelScreen(texture) {
+            const numPixelsPerStrip = Math.floor(STRIP_HEIGHT / PIXEL_SEPARATION_Y);
+            const totalPixels = NUM_STRIPS * numPixelsPerStrip;
+
+            const pixelGeometry = new THREE.BoxGeometry(PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE);
+            
+            const pixelMaterial = new THREE.ShaderMaterial({
+                vertexShader: vertexShader,
+                fragmentShader: fragmentShader,
+                uniforms: {
+                    uTexture: { value: texture },
+                    uStripHeight: { value: STRIP_HEIGHT },
+                    uTime: { value: 0.0 },
+                    uAspectRatio: { value: 1.0 },
+                    uVideoResolution: { value: new THREE.Vector2(1920, 1080) } // Default resolution
+                },
+                transparent: false 
+            });
+
+            tubeMesh = new THREE.InstancedMesh(pixelGeometry, pixelMaterial, totalPixels);
+            
+            const dummy = new THREE.Object3D();
+            let count = 0;
+
+            for (let i = 0; i < NUM_STRIPS; i++) {
+                const angle = (i / NUM_STRIPS) * Math.PI * 2;
+                // Ajustamos el radio para que los píxeles estén más pegados al plano negro
+                // El plano está en TUBE_RADIUS - 0.01, así que ponemos los píxeles justo encima
+                const pixelRadius = TUBE_RADIUS - 0.005; // Muy pegados al plano
+                const x = pixelRadius * Math.cos(angle);
+                const z = pixelRadius * Math.sin(angle);
+                
+                for (let j = 0; j < numPixelsPerStrip; j++) {
+                    const y = j * PIXEL_SEPARATION_Y;
+                    dummy.position.set(x, y, z);
+                    dummy.updateMatrix();
+                    tubeMesh.setMatrixAt(count, dummy.matrix);
+                    count++;
+                }
+            }
+            scene.add(tubeMesh);
+        }
+
+        function createFloor() {
+            const floorGeometry = new THREE.PlaneGeometry(50, 50);
+            const floorMaterial = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.8, roughness: 0.4 });
+            const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+            floor.rotation.x = -Math.PI / 2;
+            floor.position.y = 0;
+            scene.add(floor);
+        }
+
+        // --- BUCLE DE ANIMACIÓN ---
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = clock.getDelta();
+
+            if (tubeMesh && tubeMesh.material.uniforms.uTexture.value) {
+                tubeMesh.material.uniforms.uTime.value += delta;
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // --- FUNCIONALIDAD DE LA LISTA DE VIDEOS ---
+        function setupVideoSelector() {
+            const videoItems = document.querySelectorAll('.video-item');
+            
+            videoItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    const selectedVideo = this.getAttribute('data-video');
+                    console.log('Video seleccionado:', selectedVideo);
+                    
+                    // Actualizar selección visual
+                    videoItems.forEach(otherItem => {
+                        otherItem.classList.remove('selected');
+                    });
+                    this.classList.add('selected');
+                    
+                    // Cargar el video seleccionado en loop
+                    loadSelectedVideo('./' + selectedVideo);
+                });
+            });
+        }
+        
+        // Función para cargar un video seleccionado de la lista
+        function loadSelectedVideo(videoSrc) {
+            console.log('Cargando video seleccionado:', videoSrc);
+            
+            // LIMPIAR COMPLETAMENTE video anterior para evitar memory leaks
+            if (currentVideo) {
+                currentVideo.pause();
+                currentVideo.src = ''; // Limpiar src
+                currentVideo.load(); // Forzar descarga del video anterior
+                if (currentVideo.parentNode) {
+                    currentVideo.parentNode.removeChild(currentVideo);
+                }
+                currentVideo = null;
+            }
+            
+            // Limpiar textura anterior
+            if (texture && texture.image) {
+                if (texture.image.pause) {
+                    texture.image.pause();
+                }
+                texture.dispose(); // Liberar memoria de la textura
+            }
+            
+            // Crear nuevo elemento de video
+            const video = document.createElement('video');
+            video.src = videoSrc;
+            video.crossOrigin = 'anonymous';
+            video.loop = true; // Loop infinito del video seleccionado
+            video.muted = true;
+            video.autoplay = false;
+            video.playsInline = true;
+            video.preload = 'metadata';
+            
+            video.style.display = 'none';
+            document.body.appendChild(video);
+            
+            const previewVideo = document.getElementById('preview-video');
+            
+            video.addEventListener('loadedmetadata', function() {
+                console.log('Video seleccionado cargado:', videoSrc);
+                console.log('Dimensiones:', video.videoWidth, 'x', video.videoHeight);
+                
+                // Sincronizar preview - LIMPIAR PRIMERO
+                if (previewVideo) {
+                    previewVideo.pause();
+                    previewVideo.src = videoSrc;
+                    previewVideo.loop = true;
+                    previewVideo.load();
+                }
+                
+                // Crear nueva textura limpia
+                texture = new THREE.VideoTexture(video);
+                texture.wrapS = THREE.ClampToEdgeWrapping;
+                texture.wrapT = THREE.ClampToEdgeWrapping;
+                texture.flipY = false;
+                texture.format = THREE.RGBAFormat;
+                texture.generateMipmaps = false;
+                texture.minFilter = THREE.LinearFilter;
+                texture.magFilter = THREE.LinearFilter;
+                texture.encoding = THREE.sRGBEncoding;
+                
+                // Actualizar material del tubo
+                if (tubeMesh && tubeMesh.material.uniforms.uTexture) {
+                    // Limpiar textura anterior del material
+                    const oldTexture = tubeMesh.material.uniforms.uTexture.value;
+                    if (oldTexture && oldTexture !== texture) {
+                        oldTexture.dispose();
+                    }
+                    
+                    tubeMesh.material.uniforms.uTexture.value = texture;
+                    tubeMesh.material.uniforms.uVideoResolution.value.set(video.videoWidth, video.videoHeight);
+                    tubeMesh.material.uniforms.uAspectRatio.value = video.videoWidth / video.videoHeight;
+                    tubeMesh.material.needsUpdate = true;
+                }
+                
+                currentVideo = video;
+            });
+            
+            video.addEventListener('canplay', function() {
+                video.play().then(() => {
+                    console.log('Video seleccionado iniciado:', videoSrc);
+                    
+                    if (previewVideo && previewVideo.src === videoSrc) {
+                        previewVideo.play().catch(e => console.log('Error reproduciendo preview:', e));
+                    }
+                    
+                    if (texture) {
+                        texture.needsUpdate = true;
+                    }
+                }).catch(error => {
+                    console.log('Error reproduciendo video seleccionado:', error);
+                });
+            });
+            
+            // Limitar frecuencia de actualización para evitar sobrecarga
+            let lastUpdate = 0;
+            video.addEventListener('timeupdate', function() {
+                const now = Date.now();
+                if (now - lastUpdate > 16) { // ~60fps máximo
+                    if (texture) {
+                        texture.needsUpdate = true;
+                    }
+                    lastUpdate = now;
+                }
+            });
+            
+            // Manejar errores para evitar que se acumulen
+            video.addEventListener('error', function(e) {
+                console.error('Error en video:', e);
+                // Limpiar en caso de error
+                if (video.parentNode) {
+                    video.parentNode.removeChild(video);
+                }
+            });
+            
+            video.load();
+        }
+
+        init();
+        setupVideoSelector(); // Inicializar el selector de videos
+    </script>
+</body>
+</html>

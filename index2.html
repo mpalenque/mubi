@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MUBIFEST - Demo</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Riforma LL Fonts -->
+    <style>
+        @font-face {
+            font-family: 'Riforma LL';
+            src: url('./Riforma LL/RiformaLL-Regular.otf') format('opentype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+        @font-face {
+            font-family: 'Riforma LL';
+            src: url('./Riforma LL/RiformaLL-Bold.otf') format('opentype');
+            font-weight: bold;
+            font-style: normal;
+            font-display: swap;
+        }
+        @font-face {
+            font-family: 'Riforma LL';
+            src: url('./Riforma LL/RiformaLL-Light.otf') format('opentype');
+            font-weight: 300;
+            font-style: normal;
+            font-display: swap;
+        }
+        @font-face {
+            font-family: 'Riforma LL';
+            src: url('./Riforma LL/RiformaLL-Medium.otf') format('opentype');
+            font-weight: 500;
+            font-style: normal;
+            font-display: swap;
+        }
+        @font-face {
+            font-family: 'Riforma LL';
+            src: url('./Riforma LL/RiformaLL-Heavy.otf') format('opentype');
+            font-weight: 900;
+            font-style: normal;
+            font-display: swap;
+        }
+    </style>
+    <!-- Google Fonts - Fuente sólida similar -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sketch-js@1.1.3/dist/sketch.min.js"></script>
+</head>
+<body>
+    <div id="warp-container"></div>
+    <div class="container">
+        <!-- Control Menu -->
+        <div class="control-menu">
+            <div class="menu-toggle">☰</div>
+            <div class="menu-content">
+                <h3>CONTROLES</h3>
+                <div class="control-item">
+                    <label>
+                        <input type="checkbox" id="circles-toggle" checked>
+                        <span>Círculos Animados</span>
+                    </label>
+                </div>
+                <div class="control-item">
+                    <label>
+                        <input type="checkbox" id="particles-toggle">
+                        <span>Sistema Partículas</span>
+                    </label>
+                </div>
+                <div class="control-item">
+                    <label>
+                        <input type="checkbox" id="text-toggle" checked>
+                        <span>Texto Principal</span>
+                    </label>
+                </div>
+                <div class="control-item">
+                    <label>
+                        <input type="checkbox" id="multiline-text-toggle">
+                        <span>Texto Multilínea</span>
+                    </label>
+                </div>
+                <div class="control-item">
+                    <label>
+                        <input type="checkbox" id="bauhaus-text-toggle">
+                        <span>Composición Bauhaus</span>
+                    </label>
+                </div>
+                <div class="control-item">
+                    <label>
+                        <input type="checkbox" id="rotated-text-toggle" checked>
+                        <span>Texto Rotado Central</span>
+                    </label>
+                </div>
+                <div class="control-item">
+                    <label>
+                        <input type="checkbox" id="morphing-gradient-toggle" checked>
+                        <span>Gradiente Morfológico</span>
+                    </label>
+                </div>
+                <div class="control-item">
+                    <label>
+                        <input type="checkbox" id="blue-sweep-toggle">
+                        <span>Barrido Azul</span>
+                    </label>
+                </div>
+                <div class="control-item">
+                    <label>
+                        <input type="checkbox" id="warp-toggle">
+                        <span>Efecto Lluvia</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Morphing Gradient Background - EXACTLY from gradients-bg -->
+        <div class="morphing-gradient active">
+            <svg xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <filter id="goo">
+                        <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur" />
+                        <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -8" result="goo" />
+                        <feBlend in="SourceGraphic" in2="goo" />
+                    </filter>
+                </defs>
+            </svg>
+            <div class="gradients-container">
+                <div class="g1"></div>
+                <div class="g2"></div>
+                <div class="g3"></div>
+                <div class="g4"></div>
+                <div class="g5"></div>
+                <div class="interactive"></div>
+            </div>
+        </div>
+        
+        <!-- Animated background circles -->
+        <div class="circles">
+            <div class="circle circle-1"></div>
+            <div class="circle circle-2"></div>
+            <div class="circle circle-3"></div>
+            <div class="circle circle-4"></div>
+            <div class="circle circle-5"></div>
+            <div class="circle circle-6"></div>
+            <div class="circle circle-7"></div>
+            <div class="circle circle-8"></div>
+            <div class="circle circle-9"></div>
+            <div class="circle circle-10"></div>
+            <div class="circle circle-11"></div>
+            <div class="circle circle-12"></div>
+            <div class="circle circle-13"></div>
+            <div class="circle circle-14"></div>
+            <div class="circle circle-15"></div>
+            <div class="circle circle-16"></div>
+            <div class="circle circle-17"></div>
+            <div class="circle circle-18"></div>
+            <div class="circle circle-19"></div>
+            <div class="circle circle-20"></div>
+            <div class="circle circle-21"></div>
+            <div class="circle circle-22"></div>
+            <div class="circle circle-23"></div>
+            <div class="circle circle-24"></div>
+            <div class="circle circle-25"></div>
+        </div>
+        
+        <!-- Fluid Particles System -->
+        <div class="particles" style="display: none;"></div>
+        
+        <!-- Main content -->
+        <div class="content">
+            <h1 class="main-title">SABADO 5 BLUE VELVET SALA 2</h1>
+        </div>
+
+        <!-- Fixed Rotated Text -->
+        <div class="fixed-rotated-text">MUBIFEST</div>
+        <div class="fixed-rotated-text-large">MUBIFEST</div>
+
+        <!-- Multiline Text Marquee -->
+        <div class="multiline-text-container">
+            <div class="multiline-text-line" style="animation-delay: 0s;">CINEMA DIGITAL STREAMING PLATFORM ENTERTAINMENT</div>
+            <div class="multiline-text-line" style="animation-delay: -2s;">MOVIES SERIES DOCUMENTARIES FILM FESTIVAL</div>
+            <div class="multiline-text-line" style="animation-delay: -4s;">INDEPENDENT DIRECTORS ACTORS PRODUCERS AWARDS</div>
+            <div class="multiline-text-line" style="animation-delay: -6s;">PHOTOGRAPHY SOUND EDITING SCRIPT MONTAGE</div>
+            <div class="multiline-text-line" style="animation-delay: -8s;">ANIMATION VISUAL EFFECTS SPECIAL EFFECTS</div>
+            <div class="multiline-text-line" style="animation-delay: -10s;">INTERNATIONAL FESTIVAL CANNES VENICE BERLIN</div>
+            <div class="multiline-text-line" style="animation-delay: -12s;">STREAMING NETFLIX AMAZON DISNEY APPLE</div>
+            <div class="multiline-text-line" style="animation-delay: -14s;">TECHNOLOGY INNOVATION VIRTUAL REALITY</div>
+            <div class="multiline-text-line" style="animation-delay: -16s;">CULTURE ART EXPRESSION CREATIVITY VISION</div>
+            <div class="multiline-text-line" style="animation-delay: -18s;">EXPERIENCE EMOTION STORYTELLING NARRATIVE</div>
+            <div class="multiline-text-line" style="animation-delay: -20s;">PREMIERE BLOCKBUSTER INDIE ARTHOUSE</div>
+            <div class="multiline-text-line" style="animation-delay: -22s;">SCREENPLAY DIALOGUE CHARACTER DEVELOPMENT</div>
+            <div class="multiline-text-line" style="animation-delay: -24s;">CINEMATOGRAPHY LIGHTING COMPOSITION FRAME</div>
+            <div class="multiline-text-line" style="animation-delay: -26s;">GENRE DRAMA COMEDY ACTION THRILLER</div>
+            <div class="multiline-text-line" style="animation-delay: -28s;">AUDIENCE CRITICS REVIEWS RATINGS SOCIAL</div>
+            <div class="multiline-text-line" style="animation-delay: -30s;">DISTRIBUTION EXHIBITION THEATERS SCREENS</div>
+            <div class="multiline-text-line" style="animation-delay: -32s;">PRODUCTION BUDGET FINANCING INVESTMENT</div>
+            <div class="multiline-text-line" style="animation-delay: -34s;">CASTING TALENT PERFORMANCE INTERPRETATION</div>
+            <div class="multiline-text-line" style="animation-delay: -36s;">MARKETING PUBLICITY PROMOTION CAMPAIGNS</div>
+            <div class="multiline-text-line" style="animation-delay: -38s;">FUTURE DIGITAL REVOLUTION TRANSFORMATION</div>
+        </div>
+
+        <!-- Bauhaus Text Composition - HIDDEN BY DEFAULT -->
+        <div class="bauhaus-composition" style="display: none;">
+            <div class="bauhaus-text bauhaus-large">MUBI</div>
+            <div class="bauhaus-text bauhaus-medium">FEST</div>
+            <div class="bauhaus-text bauhaus-small">CINEMA</div>
+            <div class="bauhaus-text bauhaus-tiny">DIGITAL</div>
+            <div class="bauhaus-text bauhaus-xlarge">ART</div>
+            <div class="bauhaus-text bauhaus-small-alt">PLATFORM</div>
+            <div class="bauhaus-text bauhaus-medium-alt">FILM</div>
+            <div class="bauhaus-text bauhaus-micro">FESTIVAL</div>
+            <div class="bauhaus-text bauhaus-large-alt">VISION</div>
+            <div class="bauhaus-text bauhaus-small-vertical">STREAM</div>
+            <div class="bauhaus-text bauhaus-medium-vertical">CULTURE</div>
+            <div class="bauhaus-text bauhaus-minimal">•</div>
+            <div class="bauhaus-text bauhaus-minimal-alt">×</div>
+        </div>
+
+        <!-- Blue Gradient Sweep -->
+        <div class="blue-sweep">
+            <div class="blue-sweep-gradient"></div>
+        </div>
+
+    </div>
+
+    <!-- JavaScript to handle dynamic particle generation and other interactions -->
+    <script src="effect.js"></script>
+    <script>
+        // Control menu functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const menuToggle = document.querySelector('.menu-toggle');
+            const controlMenu = document.querySelector('.control-menu');
+            
+            const circlesToggle = document.getElementById('circles-toggle');
+            const particlesToggle = document.getElementById('particles-toggle');
+            const textToggle = document.getElementById('text-toggle');
+            const multilineTextToggle = document.getElementById('multiline-text-toggle');
+            const bauhausTextToggle = document.getElementById('bauhaus-text-toggle');
+            const rotatedTextToggle = document.getElementById('rotated-text-toggle');
+            const morphingGradientToggle = document.getElementById('morphing-gradient-toggle');
+            const blueSweepToggle = document.getElementById('blue-sweep-toggle');
+            const warpToggle = document.getElementById('warp-toggle');
+            
+            const circles = document.querySelector('.circles');
+            const particles = document.querySelector('.particles');
+            const mainTitle = document.querySelector('.main-title');
+            const multilineTextContainer = document.querySelector('.multiline-text-container');
+            const bauhausComposition = document.querySelector('.bauhaus-composition');
+            const morphingGradient = document.querySelector('.morphing-gradient');
+            const fixedRotatedText = document.querySelector('.fixed-rotated-text');
+            const fixedRotatedTextLarge = document.querySelector('.fixed-rotated-text-large');
+            const blueSweep = document.querySelector('.blue-sweep');
+            const warpContainer = document.getElementById('warp-container');
+
+
+            // Keyboard controls
+            document.addEventListener('keydown', function(e) {
+                switch(e.key) {
+                    case '1':
+                        toggleElement(circles, circlesToggle);
+                        break;
+                    case '2':
+                        toggleElement(particles, particlesToggle);
+                        break;
+                    case '3':
+                        toggleElement(mainTitle, textToggle);
+                        break;
+                    case '4':
+                        toggleElement(multilineTextContainer, multilineTextToggle);
+                        break;
+                    case '5':
+                        toggleElement(bauhausComposition, bauhausTextToggle);
+                        break;
+                    case '6':
+                        toggleRotatedTexts();
+                        break;
+                    case '7':
+                        toggleElement(morphingGradient, morphingGradientToggle);
+                        break;
+                    case '8':
+                        toggleBlueSweep();
+                        break;
+                    case '9':
+                        toggleWarpEffect();
+                        break;
+                }
+            });
+
+            function toggleElement(element, checkbox) {
+                if (element.style.opacity === '0' || element.style.opacity === '') {
+                    element.style.opacity = '1';
+                    element.style.pointerEvents = element === particles ? 'none' : 'auto';
+                    if (checkbox) checkbox.checked = true;
+                    
+                    // Special handling for particles
+                    if (element === particles) {
+                        element.style.display = 'block';
+                        initParticles();
+                    }
+                } else {
+                    element.style.opacity = '0';
+                    element.style.pointerEvents = 'none';
+                    if (checkbox) checkbox.checked = false;
+                    
+                    // Special handling for particles
+                    if (element === particles) {
+                        setTimeout(() => {
+                            element.style.display = 'none';
+                            clearParticles();
+                        }, 800);
+                    }
+                }
+            }
+
+            function toggleRotatedTexts() {
+                const isVisible = fixedRotatedText.style.opacity !== '0';
+                const newOpacity = isVisible ? '0' : '1';
+                
+                fixedRotatedText.style.opacity = newOpacity;
+                fixedRotatedTextLarge.style.opacity = newOpacity;
+                rotatedTextToggle.checked = !isVisible;
+            }
+
+            function toggleBlueSweep() {
+                if (blueSweep.classList.contains('active')) {
+                    blueSweep.classList.remove('active');
+                    blueSweepToggle.checked = false;
+                } else {
+                    blueSweep.classList.add('active');
+                    blueSweepToggle.checked = true;
+                }
+            }
+
+            let isWarpActive = false;
+            function toggleWarpEffect() {
+                isWarpActive = !isWarpActive;
+                if (isWarpActive) {
+                    startWarpEffect();
+                    warpToggle.checked = true;
+                } else {
+                    stopWarpEffect();
+                    warpToggle.checked = false;
+                }
+            }
+
+            // Toggle menu visibility
+            menuToggle.addEventListener('click', function(e) {
+                e.stopPropagation();
+                controlMenu.classList.toggle('active');
+            });
+            
+            // Close menu when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!controlMenu.contains(e.target)) {
+                    controlMenu.classList.remove('active');
+                }
+            });
+            
+            // Prevent menu from closing when clicking inside
+            controlMenu.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
+            
+            // Toggle circles animation
+            circlesToggle.addEventListener('change', function() {
+                if (this.checked) {
+                    circles.style.opacity = '1';
+                    circles.style.pointerEvents = 'auto';
+                } else {
+                    circles.style.opacity = '0';
+                    circles.style.pointerEvents = 'none';
+                }
+            });
+
+            // Toggle particles animation
+            particlesToggle.addEventListener('change', function() {
+                if (this.checked) {
+                    particles.style.display = 'block';
+                    initParticles();
+                } else {
+                    particles.style.display = 'none';
+                    clearParticles();
+                }
+            });
+            
+            // Toggle text marquee - COMPLETELY OFF when unchecked
+            textToggle.addEventListener('change', function() {
+                if (this.checked) {
+                    mainTitle.style.display = 'block';
+                    mainTitle.style.animationPlayState = 'running';
+                    mainTitle.style.opacity = '1';
+                } else {
+                    mainTitle.style.display = 'none';
+                }
+            });
+
+            // Toggle multiline text
+            multilineTextToggle.addEventListener('change', function() {
+                if (this.checked) {
+                    multilineTextContainer.classList.add('active');
+                } else {
+                    multilineTextContainer.classList.remove('active');
+                }
+            });
+
+            // Toggle bauhaus composition
+            bauhausTextToggle.addEventListener('change', function() {
+                if (this.checked) {
+                    bauhausComposition.style.display = 'block';
+                    bauhausComposition.classList.add('active');
+                } else {
+                    bauhausComposition.style.display = 'none';
+                    bauhausComposition.classList.remove('active');
+                }
+            });
+            
+            // Toggle rotated text
+            rotatedTextToggle.addEventListener('change', function() {
+                if (this.checked) {
+                    fixedRotatedText.style.display = 'block';
+                    fixedRotatedTextLarge.style.display = 'block';
+                    fixedRotatedText.style.opacity = '1';
+                    fixedRotatedTextLarge.style.opacity = '1';
+                } else {
+                    fixedRotatedText.style.display = 'none';
+                    fixedRotatedTextLarge.style.display = 'none';
+                }
+            });
+            
+            // Toggle morphing gradient - FIXED
+            morphingGradientToggle.addEventListener('change', function() {
+                if (this.checked) {
+                    morphingGradient.style.opacity = '1';
+                    morphingGradient.style.display = 'block';
+                    morphingGradient.classList.add('active');
+                } else {
+                    morphingGradient.style.opacity = '0';
+                    morphingGradient.style.display = 'none';
+                    morphingGradient.classList.remove('active');
+                }
+            });
+
+            // Toggle blue sweep
+            blueSweepToggle.addEventListener('change', function() {
+                if (this.checked) {
+                    blueSweep.classList.add('active');
+                } else {
+                    blueSweep.classList.remove('active');
+                }
+            });
+
+            // Toggle warp effect
+            warpToggle.addEventListener('change', function() {
+                if (this.checked) {
+                    if (!isWarpActive) {
+                        startWarpEffect();
+                        isWarpActive = true;
+                    }
+                } else {
+                    if (isWarpActive) {
+                        stopWarpEffect();
+                        isWarpActive = false;
+                    }
+                }
+            });
+
+            // Interactive gradient movement - EXACTLY from gradients-bg
+            const interBubble = document.querySelector('.interactive');
+            let curX = 0;
+            let curY = 0;
+            let tgX = 0;
+            let tgY = 0;
+
+            function move() {
+                curX += (tgX - curX) / 20;
+                curY += (tgY - curY) / 20;
+                if (interBubble) {
+                    interBubble.style.transform = `translate(${Math.round(curX)}px, ${Math.round(curY)}px)`;
+                }
+                requestAnimationFrame(() => {
+                    move();
+                });
+            }
+
+            window.addEventListener('mousemove', (event) => {
+                tgX = event.clientX;
+                tgY = event.clientY;
+            });
+
+            move();
+
+            // Particle System Implementation
+            let particleSystem = null;
+            let animationId = null;
+
+            function initParticles() {
+                if (particleSystem) return;
+                
+                const particleCount = 625;
+                particleSystem = [];
+
+                // Create particles
+                for (let i = 0; i < particleCount; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'particle';
+                    
+                    // Random initial properties
+                    const size = Math.random() * 8 + 2;
+                    const x = Math.random() * window.innerWidth;
+                    const y = Math.random() * window.innerHeight;
+                    const vx = (Math.random() - 0.5) * 4;
+                    const vy = (Math.random() - 0.5) * 4;
+                    
+                    particle.style.width = size + 'px';
+                    particle.style.height = size + 'px';
+                    particle.style.left = x + 'px';
+                    particle.style.top = y + 'px';
+                    
+                    particles.appendChild(particle);
+                    
+                    particleSystem.push({
+                        element: particle,
+                        x: x,
+                        y: y,
+                        vx: vx,
+                        vy: vy,
+                        baseSize: size,
+                        currentSize: size
+                    });
+                }
+                
+                animateParticles();
+            }
+
+            function animateParticles() {
+                if (!particleSystem) return;
+                
+                particleSystem.forEach(particle => {
+                    // Update position
+                    particle.x += particle.vx;
+                    particle.y += particle.vy;
+                    
+                    // Bounce off edges
+                    if (particle.x <= 0 || particle.x >= window.innerWidth) {
+                        particle.vx *= -0.9;
+                        particle.x = Math.max(0, Math.min(window.innerWidth, particle.x));
+                    }
+                    if (particle.y <= 0 || particle.y >= window.innerHeight) {
+                        particle.vy *= -0.9;
+                        particle.y = Math.max(0, Math.min(window.innerHeight, particle.y));
+                    }
+                    
+                    // Calculate speed for size variation
+                    const speed = Math.sqrt(particle.vx * particle.vx + particle.vy * particle.vy);
+                    const sizeMultiplier = 0.5 + (speed * 0.3);
+                    particle.currentSize = particle.baseSize * sizeMultiplier;
+                    
+                    // Apply fluid physics - attraction to center
+                    const centerX = window.innerWidth / 2;
+                    const centerY = window.innerHeight / 2;
+                    const dx = centerX - particle.x;
+                    const dy = centerY - particle.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance > 0) {
+                        const force = 0.0002;
+                        particle.vx += (dx / distance) * force;
+                        particle.vy += (dy / distance) * force;
+                    }
+                    
+                    // Add some randomness for organic movement
+                    particle.vx += (Math.random() - 0.5) * 0.02;
+                    particle.vy += (Math.random() - 0.5) * 0.02;
+                    
+                    // Limit velocity for stability
+                    const maxVel = 3;
+                    const vel = Math.sqrt(particle.vx * particle.vx + particle.vy * particle.vy);
+                    if (vel > maxVel) {
+                        particle.vx = (particle.vx / vel) * maxVel;
+                        particle.vy = (particle.vy / vel) * maxVel;
+                    }
+                    
+                    // Update DOM element
+                    particle.element.style.left = particle.x + 'px';
+                    particle.element.style.top = particle.y + 'px';
+                    particle.element.style.width = particle.currentSize + 'px';
+                    particle.element.style.height = particle.currentSize + 'px';
+                    
+                    // Opacity based on speed for fluid effect
+                    const opacity = Math.min(1, 0.3 + (speed * 0.2));
+                    particle.element.style.opacity = opacity;
+                });
+                
+                animationId = requestAnimationFrame(animateParticles);
+            }
+
+            function clearParticles() {
+                if (animationId) {
+                    cancelAnimationFrame(animationId);
+                    animationId = null;
+                }
+                
+                if (particleSystem) {
+                    particleSystem.forEach(particle => {
+                        particles.removeChild(particle.element);
+                    });
+                    particleSystem = null;
+                }
+            }
+        });
+    </script>
+</body>
+</html>
