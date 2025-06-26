@@ -217,97 +217,203 @@ body {
     animation: bounce 19.5s infinite linear;
 }
 
-/* Existing circles with bounce animations */
+/* Existing circles with bounce animations - SMALLER SIZES */
 .circle-1 {
-    width: 160px;
-    height: 160px;
+    width: 80px;
+    height: 80px;
     left: 10%;
     animation: bounce1 15.6s infinite ease-in-out;
 }
 
 .circle-3 {
-    width: 120px;
-    height: 120px;
+    width: 60px;
+    height: 60px;
     left: 70%;
     animation: bounce3 13s infinite ease-in-out;
 }
 
 .circle-5 {
-    width: 280px;
-    height: 280px;
+    width: 140px;
+    height: 140px;
     left: 50%;
     animation: bounce5 23.4s infinite ease-in-out;
 }
 
 .circle-7 {
-    width: 180px;
-    height: 180px;
+    width: 90px;
+    height: 90px;
     left: 5%;
     animation: bounce7 16.9s infinite ease-in-out;
 }
 
-/* New circles with collision effects */
+/* New circles with collision effects - SMALLER SIZES */
 .circle-9 {
-    width: 100px;
-    height: 100px;
+    width: 50px;
+    height: 50px;
     left: 15%;
     animation: collision1 11.7s infinite ease-in-out;
 }
 
 .circle-11 {
-    width: 190px;
-    height: 190px;
+    width: 95px;
+    height: 95px;
     left: 65%;
     animation: collision3 18.2s infinite ease-in-out;
 }
 
 .circle-13 {
-    width: 260px;
-    height: 260px;
+    width: 130px;
+    height: 130px;
     left: 35%;
     animation: collision5 22.1s infinite ease-in-out;
 }
 
 .circle-15 {
-    width: 170px;
-    height: 170px;
+    width: 85px;
+    height: 85px;
     left: 55%;
     animation: collision7 16.9s infinite ease-in-out;
 }
 
 .circle-17 {
-    width: 230px;
-    height: 230px;
+    width: 115px;
+    height: 115px;
     left: 88%;
     animation: collision9 19.5s infinite ease-in-out;
 }
 
 .circle-19 {
-    width: 210px;
-    height: 210px;
+    width: 105px;
+    height: 105px;
     left: 18%;
     animation: collision11 18.2s infinite ease-in-out;
 }
 
 .circle-21 {
-    width: 184px;
-    height: 184px;
+    width: 92px;
+    height: 92px;
     left: 12%;
     animation: collision13 15.6s infinite ease-in-out;
 }
 
 .circle-23 {
-    width: 250px;
-    height: 250px;
+    width: 125px;
+    height: 125px;
     left: 38%;
     animation: collision15 20.8s infinite ease-in-out;
 }
 
 .circle-25 {
-    width: 176px;
-    height: 176px;
+    width: 88px;
+    height: 88px;
     left: 28%;
     animation: collision17 14.3s infinite ease-in-out;
+}
+
+/* Additional small circles - MORE AND SMALLER */
+.circle-26 {
+    width: 40px;
+    height: 40px;
+    left: 8%;
+    animation: bounce1 12.3s infinite ease-in-out;
+}
+
+.circle-27 {
+    width: 35px;
+    height: 35px;
+    left: 75%;
+    animation: collision1 9.8s infinite ease-in-out;
+}
+
+.circle-28 {
+    width: 45px;
+    height: 45px;
+    left: 42%;
+    animation: bounce3 16.7s infinite ease-in-out;
+}
+
+.circle-29 {
+    width: 30px;
+    height: 30px;
+    left: 62%;
+    animation: collision3 11.2s infinite ease-in-out;
+}
+
+.circle-30 {
+    width: 55px;
+    height: 55px;
+    left: 22%;
+    animation: bounce5 18.4s infinite ease-in-out;
+}
+
+.circle-31 {
+    width: 38px;
+    height: 38px;
+    left: 85%;
+    animation: collision5 13.9s infinite ease-in-out;
+}
+
+.circle-32 {
+    width: 42px;
+    height: 42px;
+    left: 15%;
+    animation: bounce7 15.1s infinite ease-in-out;
+}
+
+.circle-33 {
+    width: 33px;
+    height: 33px;
+    left: 58%;
+    animation: collision7 10.6s infinite ease-in-out;
+}
+
+.circle-34 {
+    width: 48px;
+    height: 48px;
+    left: 31%;
+    animation: collision9 17.2s infinite ease-in-out;
+}
+
+.circle-35 {
+    width: 36px;
+    height: 36px;
+    left: 78%;
+    animation: bounce1 14.8s infinite ease-in-out;
+}
+
+.circle-36 {
+    width: 44px;
+    height: 44px;
+    left: 52%;
+    animation: collision11 12.7s infinite ease-in-out;
+}
+
+.circle-37 {
+    width: 28px;
+    height: 28px;
+    left: 6%;
+    animation: bounce3 19.3s infinite ease-in-out;
+}
+
+.circle-38 {
+    width: 41px;
+    height: 41px;
+    left: 68%;
+    animation: collision13 16.4s infinite ease-in-out;
+}
+
+.circle-39 {
+    width: 37px;
+    height: 37px;
+    left: 44%;
+    animation: bounce5 13.6s infinite ease-in-out;
+}
+
+.circle-40 {
+    width: 32px;
+    height: 32px;
+    left: 83%;
+    animation: collision15 11.9s infinite ease-in-out;
 }
 
 /* Bounce animations for original circles */

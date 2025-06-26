@@ -162,6 +162,21 @@
             <div class="circle circle-23"></div>
             <div class="circle circle-24"></div>
             <div class="circle circle-25"></div>
+            <div class="circle circle-26"></div>
+            <div class="circle circle-27"></div>
+            <div class="circle circle-28"></div>
+            <div class="circle circle-29"></div>
+            <div class="circle circle-30"></div>
+            <div class="circle circle-31"></div>
+            <div class="circle circle-32"></div>
+            <div class="circle circle-33"></div>
+            <div class="circle circle-34"></div>
+            <div class="circle circle-35"></div>
+            <div class="circle circle-36"></div>
+            <div class="circle circle-37"></div>
+            <div class="circle circle-38"></div>
+            <div class="circle circle-39"></div>
+            <div class="circle circle-40"></div>
         </div>
         
         <!-- Fluid Particles System -->
@@ -257,6 +272,9 @@
             // Keyboard controls
             document.addEventListener('keydown', function(e) {
                 switch(e.key) {
+                    case '0':
+                        toggleMenuButton();
+                        break;
                     case '1':
                         toggleElement(circles, circlesToggle);
                         break;
@@ -329,6 +347,18 @@
                 } else {
                     blueSweep.classList.add('active');
                     blueSweepToggle.checked = true;
+                }
+            }
+
+            function toggleMenuButton() {
+                if (menuToggle.style.opacity === '0' || menuToggle.style.opacity === '') {
+                    menuToggle.style.opacity = '1';
+                    menuToggle.style.pointerEvents = 'auto';
+                } else {
+                    menuToggle.style.opacity = '0';
+                    menuToggle.style.pointerEvents = 'none';
+                    // Also close the menu if it's open
+                    controlMenu.classList.remove('active');
                 }
             }
 
@@ -465,16 +495,38 @@
                 }
             });
 
-            // Interactive gradient movement - EXACTLY from gradients-bg
+            // Automatic gradient movement - Smooth random rotation
             const interBubble = document.querySelector('.interactive');
-            let curX = 0;
-            let curY = 0;
-            let tgX = 0;
-            let tgY = 0;
+            let curX = window.innerWidth / 2;
+            let curY = window.innerHeight / 2;
+            let tgX = window.innerWidth / 2;
+            let tgY = window.innerHeight / 2;
+            let angle = 0;
+            let radius = Math.min(window.innerWidth, window.innerHeight) * 0.3;
+            let radiusTarget = radius;
+            let centerX = window.innerWidth / 2;
+            let centerY = window.innerHeight / 2;
 
             function move() {
-                curX += (tgX - curX) / 20;
-                curY += (tgY - curY) / 20;
+                // Smooth angle rotation
+                angle += 0.005 + Math.sin(Date.now() * 0.001) * 0.003; // Variable rotation speed
+                
+                // Dynamic radius variation
+                radiusTarget = Math.min(window.innerWidth, window.innerHeight) * (0.2 + Math.sin(Date.now() * 0.002) * 0.15);
+                radius += (radiusTarget - radius) * 0.02;
+                
+                // Calculate new target position with smooth circular motion
+                tgX = centerX + Math.cos(angle) * radius;
+                tgY = centerY + Math.sin(angle) * radius * 0.7; // Slightly elliptical
+                
+                // Add subtle random drift to center point
+                centerX += (window.innerWidth / 2 - centerX) * 0.001 + Math.sin(Date.now() * 0.0015) * 0.5;
+                centerY += (window.innerHeight / 2 - centerY) * 0.001 + Math.cos(Date.now() * 0.0012) * 0.3;
+                
+                // Smooth interpolation to target
+                curX += (tgX - curX) / 25;
+                curY += (tgY - curY) / 25;
+                
                 if (interBubble) {
                     interBubble.style.transform = `translate(${Math.round(curX)}px, ${Math.round(curY)}px)`;
                 }
@@ -483,9 +535,11 @@
                 });
             }
 
-            window.addEventListener('mousemove', (event) => {
-                tgX = event.clientX;
-                tgY = event.clientY;
+            // Update center point on window resize
+            window.addEventListener('resize', () => {
+                centerX = window.innerWidth / 2;
+                centerY = window.innerHeight / 2;
+                radius = Math.min(window.innerWidth, window.innerHeight) * 0.3;
             });
 
             move();
